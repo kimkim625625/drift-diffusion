@@ -1,0 +1,8 @@
+2e-6	device length (m)
+201	number of mesh points
+1e22	doping density in n-region (/m3)
+1e22	doping density in p-region (/m3)
+0.01	applied bias step (V)
+50	number of bias points
+1e-10   potential tolerance (V)
+
