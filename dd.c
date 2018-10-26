@@ -14,42 +14,44 @@
 #define P5(x) ((x) * (x) * (x) * (x) * (x))
 
 /* physical constants */
+// 物理定数
 
-#define PV 8.854187817620e-12 // electric constant (F/m)
-#define EC 1.6021766208e-19   // elementary charge (C)
-#define KB 1.38064852e-23     // Boltzmann constant (J/K)
+#define PV 8.854187817620e-12 // electric constant (F/m)電気定数
+#define EC 1.6021766208e-19   // elementary charge (C)電荷
+#define KB 1.38064852e-23     // Boltzmann constant (J/K)ボルツマン定数
 
 /* material parameters and conditions */
+// 材料パラメータ、条件
 
-#define TL 300.0          // lattice temperature (K)
-#define VT (KB * TL / EC) // thermal voltage (V)
-#define NI 1.08e16        // intrinsic density (/m3)
-#define DC (11.9 * PV)    // dielectric constant (F/m)
-#define MUP 0.050         // hole mobility (m2/Vs)
-#define MUN 0.147         // electron mobility (m2/Vs)
-#define TAUP 10.0e-9      // hole life time (s)
-#define TAUN 10.0e-9      // electron life time (s)
+#define TL 300.0          // lattice temperature (K)格子温度
+#define VT (KB * TL / EC) // thermal voltage (V)熱電圧
+#define NI 1.08e16        // intrinsic density (/m3)固有密度
+#define DC (11.9 * PV)    // dielectric constant (F/m)誘電率
+#define MUP 0.050         // hole mobility (m2/Vs)ホール移動度
+#define MUN 0.147         // electron mobility (m2/Vs)電子移動度
+#define TAUP 10.0e-9      // hole life time (s)ホール寿命
+#define TAUN 10.0e-9      // electron life time (s)電子寿命
 
 /* Bernoulli function */
+// ベルヌーイ関数
 
 double bernoulli(double x)
 {
-  if (fabs(x) < 1e-2)
+  if (fabs(x) < 1e-2) //xの絶対値が0.01より小さい時
     return 1.0 - x * (0.5 - x * (1.0 / 12 - P2(x) / 720));
   else
     return x / (exp(x) - 1.0);
 }
 
-
-
 /* generation and recombination rate */
+// 生成および再結合率
 
 double gr_rate(double p, double n)
 {
   return -NI * (p * n - 1.0) / (TAUP * (p + 1.0) + TAUN * (n + 1.0));
 }
-
 /*
+
   solve tridiagonal linear systems A x = b
   tridg(a, n)
     a[4][n]       double precision matrix
