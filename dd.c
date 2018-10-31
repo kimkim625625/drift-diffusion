@@ -17,7 +17,7 @@
 // 物理定数
 
 #define PV 8.854187817620e-12 // electric constant (F/m)電気定数
-#define EC 1.6021766208e-19   // elementary charge (C)電荷
+#define EC 1.6021766208e-19   // elementary charge (C)電子の電荷
 #define KB 1.38064852e-23     // Boltzmann constant (J/K)ボルツマン定数
 
 /* material parameters and conditions */
@@ -50,16 +50,18 @@ double gr_rate(double p, double n)
 {
   return -NI * (p * n - 1.0) / (TAUP * (p + 1.0) + TAUN * (n + 1.0));
 }
+
 /*
 
   solve tridiagonal linear systems A x = b
+  三重線形システムを解く
   tridg(a, n)
-    a[4][n]       double precision matrix
-    a[0][1...n]   [in]  lower sub-diagonal part of A
-    a[1][0...n]   [in]  diagonal part of A
-    a[2][0...n-1] [in]  upper sub-diagonal of A
-    a[3][0...n]   [in]  right hand side, b
-                  [out] solution, x
+    a[4][n]       double precision matrix 倍精度行列
+    a[0][1...n]   [in]  lower sub-diagonal part of A Aの下半対角部分
+    a[1][0...n]   [in]  diagonal part of A Aの対角部分
+    a[2][0...n-1] [in]  upper sub-diagonal of A Aの上半対角部分
+    a[3][0...n]   [in]  right hand side, b 右手側
+                  [out] solution, x 解
   see https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
 */
 
@@ -122,6 +124,7 @@ void poisson(double eta, double *p, double *n, double *c,
 }
 
 /* solve continuity equation */
+// 連続の式を解く
 
 void continuity(int sign, double *psi, double *gr, double *pn, int m)
 {
@@ -144,6 +147,7 @@ void continuity(int sign, double *psi, double *gr, double *pn, int m)
     a[3][i] = gr[i + 1];
 
   // boundary condition
+  // 境界条件
 
   a[3][0] += bernoulli(sign * (psi[1] - psi[0])) * pn[0];
   a[3][m - 2] += bernoulli(sign * (psi[m - 1] - psi[m])) * pn[m];
@@ -159,6 +163,7 @@ void continuity(int sign, double *psi, double *gr, double *pn, int m)
 }
 
 /* evaluate current */
+// 電流評価
 
 void current(int sign, double *psi, double *pn, double *Jpn, int m)
 {
@@ -178,9 +183,13 @@ double read_double()
   double d;
 
   if (fgets(line, STRBUF, stdin) == NULL)
+    // line ストリームから読み取った文字列を格納するための配列
+    // STRBUF 1行の最大文字数
+    // stdin ストリーム
     exit(-1);
 
   sscanf(line, "%lf", &d);
+  // line（文字列）からdouble型変数に入れる
 
   return d;
 }
@@ -194,6 +203,7 @@ double read_int()
     exit(-1);
 
   sscanf(line, "%d", &i);
+  // line（文字列）から10進数整数型変数に入れる
 
   return i;
 }
@@ -202,24 +212,24 @@ double read_int()
 
 main()
 {
-  double tolerance; // potential tolerance (V)
+  double tolerance; // potential tolerance (V) 電位の公差
 
-  double Vstp; // applied bias step (V)
-  int Vnum;    // number of bias points
-  double L;    // device length (m)
-  int N;       // number of mesh points
-  double Nd;   // doping density in n-region (/m3)
-  double Na;   // doping density in p-region (/m3)
+  double Vstp; // applied bias step (V) 印加電圧刻み幅
+  int Vnum;    // number of bias points バイアス点の数
+  double L;    // device length (m) デバイス長
+  int N;       // number of mesh points 格子点数
+  double Nd;   // doping density in n-region (/m3) n領域のドナー密度
+  double Na;   // doping density in p-region (/m3) p領域のアクセプタ密度
 
-  double *p;    // hole density (/m3)
-  double *n;    // electron density (/m3)
-  double *c;    // net impurity density Nd - Na (/m3)
-  double *psi;  // potential (V)
-  double *dpsi; // potential update (V)
-  double *Jp;   // hole current density (A/m2)
-  double *Jn;   // electron current density (A/m2)
-  double *gr;   // net GR rate (/s)
-  double *gp;   // normalized GR rate, Gamma_p
+  double *p;    // hole density (/m3) ホール密度
+  double *n;    // electron density (/m3) 電子密度
+  double *c;    // net impurity density Nd - Na (/m3) 正味のNd-Na間の不純物密度
+  double *psi;  // potential (V) 電位
+  double *dpsi; // potential update (V) 電位の変化
+  double *Jp;   // hole current density (A/m2) ホール電流密度
+  double *Jn;   // electron current density (A/m2) 電子電流密度
+  double *gr;   // net GR rate (/s) 正味の生成および再結合率
+  double *gp;   // normalized GR rate, Gamma_p 正味の生成および再結合率を正規化
   double *gn;   // normalized GR rate, Gamma_n
 
   double h, Vapp, psi0, eta, nni, ujp, ujn, pfp, pfn, residue;
@@ -228,17 +238,17 @@ main()
 
   // read conditions
 
-  L = read_double();
-  N = read_int();
-  Nd = read_double();
-  Na = read_double();
-  Vstp = read_double();
-  Vnum = read_int();
-  tolerance = read_double();
+  L = read_double();         // ダイオードの全長．メートル (m) 単位
+  N = read_int();            // 最大の格子点指数．全格子点数は (N+1) 個
+  Nd = read_double();        // n領域のドナー密度．毎立方メートル (m-3) 単位
+  Na = read_double();        // p領域のアクセプタ密度．毎立方メートル (m-3) 単位
+  Vstp = read_double();      // 印加電圧刻み幅．ボルト (V) 単位
+  Vnum = read_int();         // 最大印加電圧を決める指数．計算を行う印加電圧 V は 0, ΔV, 2ΔV, ..., M ΔV となります
+  tolerance = read_double(); // ポテンシャルの収束条件．ボルト (V) 単位
 
   // set up the system
 
-  h = L / N; // mesh width (m)
+  h = L / N; // mesh width (m) 格子点間隔
 
   p = zeros(N + 1);
   n = zeros(N + 1);
@@ -268,13 +278,14 @@ main()
   }
 
   // constants for normalization
+  // 正規化のための定数
 
   eta = EC / h / DC / VT; // for Poisson
 
   ujp = EC * MUP * VT / P4(h); // unit of hole current
   ujn = EC * MUN * VT / P4(h); // unit of electron current
 
-  pfp = P5(h) / (MUP * VT); // pre-factor for Gamma_p
+  pfp = P5(h) / (MUP * VT); // pre-factor for Gamma_p Gamma_pの前要素
   pfn = P5(h) / (MUN * VT); // pre-factor for Gamma_n
 
   nni = NI * P3(h); // normalized intrinsic density
@@ -303,6 +314,7 @@ main()
     psi[0] = psi0 + Vapp / VT; // normalized applied voltage
 
     // self-consistent loop
+    // 自己無撞着的に解くループ
 
     for (loop = 1;; ++loop)
     {
@@ -317,17 +329,20 @@ main()
       }
 
       // solve continuity equations
+      // 連続の式を解く
 
       continuity(1, psi, gp, p, N);
       continuity(-1, psi, gn, n, N);
 
       // solve Poisson equation
+      // ポアソンの方程式を解く
 
       poisson(eta, p, n, c, psi, dpsi, N);
       for (i = 1; i < N; ++i)
         psi[i] = psi[i] + dpsi[i];
 
       // converge?
+      // 収束するか？
 
       residue = 0.0;
       for (i = 1; i < N; ++i)
