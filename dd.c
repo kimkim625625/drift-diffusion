@@ -16,17 +16,17 @@
 /* physical constants */
 // 物理定数
 
-#define PV 8.854187817620e-12 // electric constant (F/m)電気定数
-#define EC 1.6021766208e-19   // elementary charge (C)電子の電荷
+#define PV 8.854187817620e-12 // electric constant (F/m)真空の誘電率
+#define EC 1.6021766208e-19   // elementary charge (C)電気素量
 #define KB 1.38064852e-23     // Boltzmann constant (J/K)ボルツマン定数
 
 /* material parameters and conditions */
 // 材料パラメータ、条件
 
 #define TL 300.0          // lattice temperature (K)格子温度
-#define VT (KB * TL / EC) // thermal voltage (V)熱電圧
-#define NI 1.08e16        // intrinsic density (/m3)固有密度
-#define DC (11.9 * PV)    // dielectric constant (F/m)誘電率
+#define VT (KB * TL / EC) // thermal voltage (V)熱電圧 kT/q
+#define NI 1.08e16        // intrinsic density (/m3)s 真性キャリア密度
+#define DC (11.9 * PV)    // dielectric constant (F/m)Siの誘電率(Siの比誘電率は11.9)
 #define MUP 0.050         // hole mobility (m2/Vs)ホール移動度
 #define MUN 0.147         // electron mobility (m2/Vs)電子移動度
 #define TAUP 10.0e-9      // hole life time (s)ホール寿命
@@ -44,7 +44,7 @@ double bernoulli(double x)
 }
 
 /* generation and recombination rate */
-// 生成および再結合率
+// 生成・消滅割合
 
 double gr_rate(double p, double n)
 {
@@ -54,7 +54,6 @@ double gr_rate(double p, double n)
 /*
 
   solve tridiagonal linear systems A x = b
-  三重線形システムを解く
   tridg(a, n)
     a[4][n]       double precision matrix 倍精度行列
     a[0][1...n]   [in]  lower sub-diagonal part of A Aの下半対角部分
@@ -65,6 +64,7 @@ double gr_rate(double p, double n)
   see https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
 */
 
+// 三重対角行列アルゴリズムを解く
 void tridg(double **a, int n)
 {
   int i;
@@ -212,7 +212,7 @@ double read_int()
 
 main()
 {
-  double tolerance; // potential tolerance (V) 電位の公差
+  double tolerance; // potential tolerance (V) ポテンシャルの公差
 
   double Vstp; // applied bias step (V) 印加電圧刻み幅
   int Vnum;    // number of bias points バイアス点の数
@@ -224,12 +224,12 @@ main()
   double *p;    // hole density (/m3) ホール密度
   double *n;    // electron density (/m3) 電子密度
   double *c;    // net impurity density Nd - Na (/m3) 正味のNd-Na間の不純物密度
-  double *psi;  // potential (V) 電位
-  double *dpsi; // potential update (V) 電位の変化
+  double *psi;  // potential (V) ポテンシャル
+  double *dpsi; // potential update (V) ポテンシャルの変化
   double *Jp;   // hole current density (A/m2) ホール電流密度
   double *Jn;   // electron current density (A/m2) 電子電流密度
-  double *gr;   // net GR rate (/s) 正味の生成および再結合率
-  double *gp;   // normalized GR rate, Gamma_p 正味の生成および再結合率を正規化
+  double *gr;   // net GR rate (/s) 正味の生成・消滅割合
+  double *gp;   // normalized GR rate, Gamma_p 正味の生成・消滅割合を正規化
   double *gn;   // normalized GR rate, Gamma_n
 
   double h, Vapp, psi0, eta, nni, ujp, ujn, pfp, pfn, residue;
@@ -280,12 +280,12 @@ main()
   // constants for normalization
   // 正規化のための定数
 
-  eta = EC / h / DC / VT; // for Poisson
+  eta = EC / h / DC / VT; // for Poisson ポアソンの式を無次元化するための定数η
 
   ujp = EC * MUP * VT / P4(h); // unit of hole current
   ujn = EC * MUN * VT / P4(h); // unit of electron current
 
-  pfp = P5(h) / (MUP * VT); // pre-factor for Gamma_p Gamma_pの前要素
+  pfp = P5(h) / (MUP * VT); // pre-factor for Gamma_p
   pfn = P5(h) / (MUN * VT); // pre-factor for Gamma_n
 
   nni = NI * P3(h); // normalized intrinsic density
@@ -302,7 +302,9 @@ main()
   // initial guess for normalized potential
 
   for (i = 0; i < N + 1; ++i)
+  {
     psi[i] = log(n[i] / nni);
+  }
   psi0 = psi[0];
 
   // main loop
@@ -335,18 +337,22 @@ main()
       continuity(-1, psi, gn, n, N);
 
       // solve Poisson equation
-      // ポアソンの方程式を解く
+      // ポアソンの式を解く
 
       poisson(eta, p, n, c, psi, dpsi, N);
       for (i = 1; i < N; ++i)
+      {
         psi[i] = psi[i] + dpsi[i];
+      }
 
       // converge?
       // 収束するか？
 
       residue = 0.0;
       for (i = 1; i < N; ++i)
+      {
         residue += P2(dpsi[i]);
+      }
       residue = sqrt(residue / (N - 1)) * VT; // (V)
       if (residue < tolerance)
         break;
