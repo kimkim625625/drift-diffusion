@@ -79,6 +79,7 @@ void tridg(double **a, int n)
   a[3][n - 1] /= a[1][n - 1];
   for (i = n - 2; i >= 0; --i)
     a[3][i] = (a[3][i] - a[2][i] * a[3][i + 1]) / a[1][i];
+  // 連立方程式をf(p,n,psi)に関して解く(p,n,psi)を返す
 }
 
 /* solve Poisson equation */
@@ -88,6 +89,10 @@ double *zeros(int n)
   double *a;
 
   if ((a = (double *)calloc((size_t)n, sizeof(double))) == NULL)
+    // 8byteのブロックをヒープメモリからn個割り当てる
+    // double 8バイト(=64bit)
+    // size_t型 長さ、大きさ、サイズを表現する型
+    // sizeof演算子 渡された型や変数のメモリサイズを調べる
     exit(-1);
 
   return a;
@@ -155,6 +160,7 @@ void continuity(int sign, double *psi, double *gr, double *pn, int m)
   tridg(a, m - 1);
   for (i = 0; i < m - 1; ++i)
     pn[i + 1] = a[3][i];
+  // p,nを返す
 
   for (i = 0; i < 4; ++i)
   {
@@ -210,7 +216,7 @@ double read_int()
 
 /* main routine */
 
-main()
+int main()
 {
   double tolerance; // potential tolerance (V) ポテンシャルの公差
 
@@ -273,6 +279,7 @@ main()
 
   for (i = 0; i < N + 1; ++i)
   {
+    // 境界値
     p[i] = 0.5 * (sqrt(P2(c[i]) + 4 * P2(NI)) - c[i]);
     n[i] = 0.5 * (sqrt(P2(c[i]) + 4 * P2(NI)) + c[i]);
   }
@@ -303,6 +310,7 @@ main()
 
   for (i = 0; i < N + 1; ++i)
   {
+    // 境界値
     psi[i] = log(n[i] / nni);
   }
   psi0 = psi[0];
@@ -365,7 +373,9 @@ main()
       Jp[i] *= -ujp;
     current(-1, psi, n, Jn, N);
     for (i = 0; i < N; ++i)
+    {
       Jn[i] *= ujn;
+    }
 
     printf("%15.8e %15.8e %15.8e %15.8e %3d\n",
            Vapp, Jp[0], Jn[0], Jp[0] + Jn[0], loop);
@@ -384,6 +394,7 @@ main()
   // save results
 
   if ((fp = fopen("dd_out_m.txt", "w")) == NULL)
+    // dd_out_m.txtというファイルを書き込みモードで作成する
     exit(-1);
   for (i = 0; i < N + 1; ++i)
     fprintf(fp, "%15.8e %15.8e %15.8e %15.8e %15.8e\n",
